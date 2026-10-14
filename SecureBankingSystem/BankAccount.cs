@@ -36,12 +36,12 @@ namespace SecureBankingSystem
             get {  return _balance; }
            private set 
             {
-                if(value <0m)
+                if(value <MinimumAllowedBalance)
                 {
                     throw new ArgumentOutOfRangeException(
-                        nameof(value) ,
-                        $"Balance may never be negative . Refused {value:F2} {Currency}"
-                        );
+                             nameof(value),
+                             $"Balance cannot be less than the minimum allowed balance ({MinimumAllowedBalance:F2} {Currency}). Refused {value:F2} {Currency}"
+                     );
                 }
                 _balance = value;
             }
@@ -101,7 +101,7 @@ namespace SecureBankingSystem
             Console.WriteLine($"Note: {note}");
         }
 
-        public void ApplyMonthlyFee(decimal fee = 5.00m) // optional parameter
+        public virtual void ApplyMonthlyFee(decimal fee = 5.00m) // optional parameter
         {
             if (fee > Balance) 
             {
@@ -112,6 +112,12 @@ namespace SecureBankingSystem
             Console.WriteLine($"Monthly fee of {fee:F2} EGP applied to account {AccountNumber} New Balance: {Balance:F2} EGP");
         }
 
+        public virtual void RunMonthEnd()
+        {
+            Console.WriteLine($"  [BankAccount] month-end for #{AccountNumber} ({OwnerName})");
+            ApplyMonthlyFee();
+        }
+
 
         public bool withdraw(decimal amount)
         {
@@ -120,7 +126,7 @@ namespace SecureBankingSystem
                 Console.WriteLine($"Amount must be positive");
                 return false;
             }
-            if (amount > Balance) 
+            if (amount > Balance - MinimumAllowedBalance) 
             {
                 Console.WriteLine($"Withdrawal of {amount:F2} EGP refused..");
                 return false;
@@ -165,7 +171,7 @@ namespace SecureBankingSystem
             return $"#Bank Name: {BankName} | Minimum Balance: {MinimumOpeningBalance} EGP | account opened: {TotalAccountOpened}";
         }
 
-        public string GetSummary()
+        public virtual string GetSummary()
         {
             return $"#{AccountNumber} | {OwnerName} | {Balance:F2} EGP";
         }
@@ -181,7 +187,18 @@ namespace SecureBankingSystem
         {
             this.OwnerName = OwnerName;
         }
+        //==============================
+        protected decimal CalculateMonthlyInterest(decimal annualRatePercent)
+        {
+            if (annualRatePercent < 0m)
+            {
+                throw new ArgumentOutOfRangeException(nameof(annualRatePercent), "An interest rate may not be negative.");
+            }
 
+            return Math.Round(Balance * annualRatePercent / 100m / 12m, 2);
+        }
+
+        protected virtual decimal MinimumAllowedBalance => 0.00m;
 
     }
 }
